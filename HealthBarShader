@@ -1,0 +1,63 @@
+Shader "Shader/HealthBarShader"
+{
+    Properties
+    {
+        _Health ("Health", Range(0,1)) = 1
+        _LowHealthColor ("Low Health Color", Color) = (1,0,0,1)
+        _HighHealthColor ("High Health Color", Color) = (0,1,0,1)
+        _PulseSpeed ("Pulse Speed", Range(1, 20)) = 10
+    }
+    SubShader
+    {
+        Tags { "Queue"="Transparent" "RenderType"="Transparent" }
+        Pass
+        {
+            // Set up blending for transparency
+            Blend SrcAlpha OneMinusSrcAlpha
+            ZWrite Off
+
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "UnityCG.cginc"
+
+            // Link the properties
+            float _Health;
+            fixed4 _LowHealthColor;
+            fixed4 _HighHealthColor;
+            float _PulseSpeed;
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 vertex : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            v2f vert (appdata v)
+            {
+                v2f o;
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.uv = v.uv;
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target
+            {
+                float fillMask = step(i.uv.x, _Health);
+                clip(fillMask - 0.001);
+                fixed4 healthColor = lerp(_LowHealthColor, _HighHealthColor, _Health);
+                float pulse = (sin(_Time.y * _PulseSpeed) + 1) * 0.5;
+                float lowHealthMask = step(_Health, 0.3);
+                fixed4 finalColor = lerp(healthColor, healthColor + pulse, lowHealthMask);
+                return finalColor;
+            }
+            ENDCG
+        }
+    }
+}
